@@ -1,0 +1,62 @@
+mv -f fs.img fs.img.bk
+mv: cannot stat 'fs.img': No such file or directory
+make: [Makefile:289: newfs.img] Error 1 (ignored)
+riscv64-linux-gnu-gcc -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -DSOL_UTIL -DLAB_UTIL -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf -I. -fno-stack-protector -fno-pie -no-pie   -c -o user/memdump.o user/memdump.c
+user/memdump.c: In function ‘memdump’:
+user/memdump.c:10:10: error: stray ‘\’ in program
+   10 |   printf(\"memdump: stub\\n\");
+      |          ^
+user/memdump.c:10:11: error: missing terminating " character [-Werror]
+   10 |   printf(\"memdump: stub\\n\");
+      |           ^
+user/memdump.c:10:11: error: missing terminating " character
+   10 |   printf(\"memdump: stub\\n\");
+      |           ^~~~~~~~~~~~~~~~~~~~~
+user/memdump.c:11:1: error: expected expression before ‘}’ token
+   11 | }
+      | ^
+user/memdump.c:10:10: error: expected ‘;’ before ‘}’ token
+   10 |   printf(\"memdump: stub\\n\");
+      |          ^
+      |          ;
+   11 | }
+      | ~         
+user/memdump.c: In function ‘main’:
+user/memdump.c:18:12: error: stray ‘\’ in program
+   18 |     printf(\"memdump: stub (no args)\\n\");
+      |            ^
+user/memdump.c:18:13: error: missing terminating " character [-Werror]
+   18 |     printf(\"memdump: stub (no args)\\n\");
+      |             ^
+user/memdump.c:18:13: error: missing terminating " character
+   18 |     printf(\"memdump: stub (no args)\\n\");
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+user/memdump.c:19:3: error: expected expression before ‘}’ token
+   19 |   } else {
+      |   ^
+user/memdump.c:18:12: error: expected ‘;’ before ‘}’ token
+   18 |     printf(\"memdump: stub (no args)\\n\");
+      |            ^
+      |            ;
+   19 |   } else {
+      |   ~         
+user/memdump.c:20:12: error: stray ‘\’ in program
+   20 |     printf(\"memdump: stub arg=%s\\n\", argv[1]);
+      |            ^
+user/memdump.c:20:13: error: missing terminating " character [-Werror]
+   20 |     printf(\"memdump: stub arg=%s\\n\", argv[1]);
+      |             ^
+user/memdump.c:20:13: error: missing terminating " character
+   20 |     printf(\"memdump: stub arg=%s\\n\", argv[1]);
+      |             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+user/memdump.c:21:3: error: expected expression before ‘}’ token
+   21 |   }
+      |   ^
+user/memdump.c:20:12: error: expected ‘;’ before ‘}’ token
+   20 |     printf(\"memdump: stub arg=%s\\n\", argv[1]);
+      |            ^
+      |            ;
+   21 |   }
+      |   ~         
+cc1: all warnings being treated as errors
+make: *** [<builtin>: user/memdump.o] Error 1

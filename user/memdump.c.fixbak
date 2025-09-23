@@ -1,0 +1,102 @@
+#include "types.h"
+#include "user.h"
+
+void
+memdump(char *fmt, char *data)
+{
+  unsigned char *p = (unsigned char *)data; // cursor into data
+  char *f;
+
+  for (f = fmt; *f; f++) {
+    switch (*f) {
+    case 'i': { // 4 bytes -> 32-bit integer (decimal)
+      unsigned int v =
+        (unsigned int)p[0]
+        | ((unsigned int)p[1] << 8)
+        | ((unsigned int)p[2] << 16)
+        | ((unsigned int)p[3] << 24);
+      printf("%d\n", (int)v);
+      p += 4;
+      break;
+    }
+
+#if defined(__LP64__) || defined(__x86_64__)
+    // 64-bit build (pointers = 8 bytes)
+    case 'p': {
+      unsigned long long v = 0ULL;
+      int i;
+      for (i = 0; i < 8; i++)
+        v |= (unsigned long long)p[i] << (8 * i);
+      printf("%llx\n", v);
+      p += 8;
+      break;
+    }
+
+    case 's': {
+      unsigned long long addr = 0ULL;
+      int i;
+      for (i = 0; i < 8; i++)
+        addr |= (unsigned long long)p[i] << (8 * i);
+      char *str = (char *)addr;
+      if (str)
+        printf("%s\n", str);
+      else
+        printf("(nil)\n");
+      p += 8;
+      break;
+    }
+#else
+    // 32-bit build (pointers = 4 bytes)
+    case 'p': {
+      unsigned int v = 0U;
+      int i;
+      for (i = 0; i < 4; i++)
+        v |= (unsigned int)p[i] << (8 * i);
+      printf("%x\n", v);
+      p += 4;
+      break;
+    }
+
+    case 's': {
+      unsigned int addr = 0U;
+      int i;
+      for (i = 0; i < 4; i++)
+        addr |= (unsigned int)p[i] << (8 * i);
+      char *str = (char *)addr;
+      if (str)
+        printf("%s\n", str);
+      else
+        printf("(nil)\n");
+      p += 4;
+      break;
+    }
+#endif
+
+    case 'h': { // 2 bytes -> 16-bit integer (decimal)
+      unsigned short v = (unsigned short)(p[0] | (p[1] << 8));
+      printf("%d\n", (int)v);
+      p += 2;
+      break;
+    }
+
+    case 'c': { // 1 byte -> ASCII character
+      char ch = (char)p[0];
+      printf("%c\n", ch);
+      p += 1;
+      break;
+    }
+
+    case 'S': { // the rest of data is a null-terminated string
+      printf("%s\n", (char *)p);
+      while (*p) p++;
+      p++;
+      break;
+    }
+
+    default:
+      // ignore unknown format chars
+      break;
+    }
+  }
+}
+
