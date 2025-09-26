@@ -1,9 +1,11 @@
 // Shell.
 
 #include "types.h"
+#include "stat.h"
 #include "user.h"
 #include "fcntl.h"
 
+int prompt_on = 0;
 // Parsed command representation
 #define EXEC  1
 #define REDIR 2
@@ -133,7 +135,9 @@ runcmd(struct cmd *cmd)
 int
 getcmd(char *buf, int nbuf)
 {
-  printf(2, "$ ");
+  if (prompt_on)                 // only show prompt if interactive
+    printf(2, "$ ");
+
   memset(buf, 0, nbuf);
   gets(buf, nbuf);
   if(buf[0] == 0) // EOF
@@ -155,8 +159,23 @@ main(void)
     }
   }
 
+  struct stat st;
+  if (fstat(0, &st) < 0) {
+    prompt_on = 0;
+  } else {
+    // treat device (console) as interactive
+    prompt_on = (st.type == T_DEV);
+  }
+
+
   // Read and run input commands.
   while(getcmd(buf, sizeof(buf)) >= 0){
+    // built-in: toggle prompt printing when user types "prompt"
+    if (strcmp(buf, "prompt\n") == 0) {
+      prompt_on = !prompt_on;
+      continue;
+    }
+
     if(buf[0] == 'c' && buf[1] == 'd' && buf[2] == ' '){
       // Chdir must be called by the parent, not the child.
       buf[strlen(buf)-1] = 0;  // chop \n
@@ -164,11 +183,26 @@ main(void)
         printf(2, "cannot cd %s\n", buf+3);
       continue;
     }
-    if(fork1() == 0)
-      runcmd(parsecmd(buf));
+
+if(strcmp(buf, "wait") == 0){
+    while(wait() > 0) ;
+    continue;
+}
+
+if(fork() == 0){
+        char *argv[2];
+        argv[0] = buf;
+        argv[1] = 0;
+        exec(buf, argv);
+        printf(2, "exec %s failed\n", buf);
+        exit();
+    }
     wait();
-  }
-  exit();
+
+if(fork1() == 0){
+ runcmd(parsecmd(buf));
+ wait(); }
+ exit();   
 }
 
 void
