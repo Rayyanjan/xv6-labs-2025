@@ -399,3 +399,6 @@ check-qemu-version:
 		echo "ERROR: Need qemu version >= $(MIN_QEMU_VERSION)"; \
 		exit 1; \
 	fi
+
+# include extra test data in fs image
+UEXTRA += time.txt

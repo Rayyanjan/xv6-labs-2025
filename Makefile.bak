@@ -176,6 +176,7 @@ mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 .PRECIOUS: %.o
 
 UPROGS=\
+	$U/_uptime\
 	$U/_cat\
 	$U/_echo\
 	$U/_forktest\
@@ -199,6 +200,7 @@ UPROGS=\
         $U/_sixfive\
         $U/_memdump\
         $U/_find\
+        $U/_uptime\
 
 ifeq ($(LAB),syscall)
 UPROGS += \
