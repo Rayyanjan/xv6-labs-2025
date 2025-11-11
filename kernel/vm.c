@@ -9,21 +9,7 @@
 #include "fs.h"
 #include "vm.h"
 
-// I walk a lonely road
-// The only one that I have ever known
-// Don't know where it goes
-// But it's home to me and I walk alone 
-// I walk alone 
-// I walk this empty page
-// On the boulevard of broken codes
-// Dont know where it goes
-// But it's home to me and I walk alone
 
-// Special thanks to Juhair ameerali merchant for being there in the hard days 
-
-/*
- * the kernel's page table.
- */
 pagetable_t kernel_pagetable;
 
 extern char etext[];  // kernel.ld sets this to end of kernel code.
@@ -114,7 +100,6 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
   return &pagetable[PX(0, va)];
 }
 
-// ADDED BY SAFEGUARD
 static pte_t *
 walk_for_level(pagetable_t pagetable, uint64 va, int alloc, int want_level)
 {
@@ -240,7 +225,6 @@ uvmcreate()
   return pagetable;
 }
 
-// ADDED BY SAFEGUARD
 static int
 demote_superpage(pagetable_t pagetable, uint64 va)
 {
@@ -296,7 +280,6 @@ ismapped(pagetable_t pagetable, uint64 va)
   return 0;
 }
 
-// EDITED BY SAFEGUARD
 void
 uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 {
@@ -448,7 +431,6 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       }
     }
 
-    // Handle normal 4KB pages
     pte = walk(old, i, 0);
     if (pte == 0 || (*pte & PTE_V) == 0)
       continue;
@@ -470,7 +452,6 @@ err:
   uvmunmap(new, 0, i / PGSIZE, 1);
   return -1;
 }
-
 
 void
 uvmclear(pagetable_t pagetable, uint64 va)
