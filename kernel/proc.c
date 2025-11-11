@@ -20,15 +20,8 @@ static void freeproc(struct proc *p);
 
 extern char trampoline[]; // trampoline.S
 
-// helps ensure that wakeups of wait()ing
-// parents are not lost. helps obey the
-// memory model when using p->parent.
-// must be acquired before any p->lock.
 struct spinlock wait_lock;
 
-// Allocate a page for each process's kernel stack.
-// Map it high in memory, followed by an invalid
-// guard page.
 void
 proc_mapstacks(pagetable_t kpgtbl)
 {
@@ -58,9 +51,6 @@ procinit(void)
   }
 }
 
-// Must be called with interrupts disabled,
-// to prevent race with process being moved
-// to a different CPU.
 int
 cpuid()
 {
@@ -78,7 +68,7 @@ mycpu(void)
   return c;
 }
 
-// Return the current struct proc *, or zero if none.
+// Return the current struct proc or zero if none.
 struct proc*
 myproc(void)
 {
@@ -102,10 +92,6 @@ allocpid()
   return pid;
 }
 
-// Look in the process table for an UNUSED proc.
-// If found, initialize state required to run in the kernel,
-// and return with p->lock held.
-// If there are no free procs, or a memory allocation fails, return 0.
 static struct proc*
 allocproc(void)
 {
@@ -131,7 +117,6 @@ found:
     release(&p->lock);
     return 0;
   }
-  // ADDED BY SAFEGUARD: Allocate a USYSCALL page.
   if ((p->usyscall = (struct usyscall*)kalloc()) == 0) {
     freeproc(p);
     release(&p->lock);
@@ -149,8 +134,7 @@ found:
     return 0;
   }
 
-  // Set up new context to start executing at forkret,
-  // which returns to user space.
+  // Set up new context to start executing at forkret, which returns to user space.
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
@@ -159,8 +143,7 @@ found:
 }
 
 // free a proc structure and the data hanging from it,
-// including user pages.
-// p->lock must be held.
+// including user pages. p->lock must be held.
 static void
 freeproc(struct proc *p)
 {
@@ -168,14 +151,13 @@ freeproc(struct proc *p)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
 
-  // ADDED BY SAFEGUARD
   if(p->usyscall)
     kfree((void*)p->usyscall);
 
   p->usyscall = 0;
 
   if(p->pagetable)
-    proc_freepagetable(p->pagetable, p->sz);
+  proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
   p->sz = 0;
   p->pid = 0;
@@ -218,7 +200,7 @@ proc_pagetable(struct proc *p)
     return 0;
   }
   
-  // ADDED BY SAFEGUARD: map the usyscall page just below the trapframe page
+  // map the usyscall page just below the trapframe page
   if(mappages(pagetable, USYSCALL, PGSIZE, (uint64)(p->usyscall), PTE_R | PTE_U) < 0){
     uvmunmap(pagetable, TRAPFRAME, 1, 0);
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);
@@ -301,18 +283,14 @@ kfork(void)
   }
   np->sz = p->sz;
 
- // ADDED BY SAFEGUARD: If parent has a usyscall page, copy it to child
   np->trapframe->epc = p->trapframe->epc;
   np->trapframe->sp = p->trapframe->sp;
 
-  // ADDED BY SAFEGUARD: If parent has a usyscall page, copy it to child
   if (np->usyscall)
     np->usyscall->pid = np->pid;
 
-  // ADDED BY SAFEGUARD: unmap the usyscall page from child (it will be remapped below)
   uvmunmap(np->pagetable, USYSCALL, 1, 0);
 
-  // ADDED BY SAFEGUARD: map the usyscall page just below the trapframe page
   if (mappages(np->pagetable, USYSCALL, PGSIZE, (uint64)(np->usyscall), PTE_R | PTE_U) < 0) {
     freeproc(np);
     release(&np->lock);
@@ -348,8 +326,6 @@ kfork(void)
   return pid;
 }
 
-// Pass p's abandoned children to init.
-// Caller must hold wait_lock.
 void
 reparent(struct proc *p)
 {
@@ -390,7 +366,6 @@ kexit(int status)
 
   acquire(&wait_lock);
 
-  // Give any children to init.
   reparent(p);
 
   // Parent might be sleeping in wait().
@@ -403,7 +378,6 @@ kexit(int status)
 
   release(&wait_lock);
 
-  // Jump into the scheduler, never to return.
   sched();
   panic("zombie exit");
 }
@@ -446,7 +420,6 @@ kwait(uint64 addr)
       }
     }
 
-    // No point waiting if we don't have any children.
     if(!havekids || killed(p)){
       release(&wait_lock);
       return -1;
@@ -491,27 +464,17 @@ scheduler(void)
         c->proc = p;
         swtch(&c->context, &p->context);
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
         c->proc = 0;
         found = 1;
       }
       release(&p->lock);
     }
     if(found == 0) {
-      // nothing to run; stop running on this core until an interrupt.
       asm volatile("wfi");
     }
   }
 }
 
-// Switch to scheduler.  Must hold only p->lock
-// and have changed proc->state. Saves and restores
-// intena because intena is a property of this
-// kernel thread, not this CPU. It should
-// be proc->intena and proc->noff, but that would
-// break in the few places where a lock is held but
-// there's no process.
 void
 sched(void)
 {
@@ -556,13 +519,9 @@ forkret(void)
   release(&p->lock);
 
   if (first) {
-    // File system initialization must be run in the context of a
-    // regular process (e.g., because it calls sleep), and thus cannot
-    // be run from main().
     fsinit(ROOTDEV);
 
     first = 0;
-    // ensure other cores see first=0.
     __sync_synchronize();
 
     // We can invoke kexec() now that file system is initialized.
@@ -573,37 +532,25 @@ forkret(void)
     }
   }
 
-  // return to user space, mimicing usertrap()'s return.
   prepare_return();
   uint64 satp = MAKE_SATP(p->pagetable);
   uint64 trampoline_userret = TRAMPOLINE + (userret - trampoline);
   ((void (*)(uint64))trampoline_userret)(satp);
 }
 
-// Sleep on channel chan, releasing condition lock lk.
-// Re-acquires lk when awakened.
 void
 sleep(void *chan, struct spinlock *lk)
 {
   struct proc *p = myproc();
-  
-  // Must acquire p->lock in order to
-  // change p->state and then call sched.
-  // Once we hold p->lock, we can be
-  // guaranteed that we won't miss any wakeup
-  // (wakeup locks p->lock),
-  // so it's okay to release lk.
 
   acquire(&p->lock);  //DOC: sleeplock1
   release(lk);
 
-  // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
 
   sched();
-
-  // Tidy up.
+  
   p->chan = 0;
 
   // Reacquire original lock.
@@ -611,8 +558,6 @@ sleep(void *chan, struct spinlock *lk)
   acquire(lk);
 }
 
-// Wake up all processes sleeping on channel chan.
-// Caller should hold the condition lock.
 void
 wakeup(void *chan)
 {
@@ -672,9 +617,6 @@ killed(struct proc *p)
   return k;
 }
 
-// Copy to either a user address, or kernel address,
-// depending on usr_dst.
-// Returns 0 on success, -1 on error.
 int
 either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
 {
@@ -687,9 +629,6 @@ either_copyout(int user_dst, uint64 dst, void *src, uint64 len)
   }
 }
 
-// Copy from either a user address, or kernel address,
-// depending on usr_src.
-// Returns 0 on success, -1 on error.
 int
 either_copyin(void *dst, int user_src, uint64 src, uint64 len)
 {
@@ -702,9 +641,6 @@ either_copyin(void *dst, int user_src, uint64 src, uint64 len)
   }
 }
 
-// Print a process listing to console.  For debugging.
-// Runs when user types ^P on console.
-// No lock to avoid wedging a stuck machine further.
 void
 procdump(void)
 {
