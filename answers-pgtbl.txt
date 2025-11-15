@@ -1,0 +1,40 @@
+Time spent
+==========
+I spent around 6-7 hours working on this lab, including debugging, reading the codebase, and verifying the test outputs.
+
+Answers
+=======
+
+1. The output from pgtbltest illustrates how a user process’s virtual pages are mapped into physical memory along with their permission bits. The lower virtual addresses (from 0x0 up to roughly 0x4000) contain valid entries that correspond to the program’s text and initial data. These entries have permissions such as 0x5B, meaning the pages are marked valid and allow user-mode reads, writes, and execution.
+
+   Between 0x5000 and 0x9000, the PTEs are empty, which indicates that these virtual addresses are currently unused and do not map to any physical pages.
+
+   At the top of the user address range, xv6 installs two special mappings for every process. One is the trapframe page at virtual address 0x3FFFFFE000, which holds the saved user registers during a trap and is mapped with kernel-writable permissions (e.g., 0xC7). The other is the trampoline page at 0x3FFFFFF000, which contains the entry/exit code for switching between user and kernel mode; it is valid and executable but not writable by user code. Overall, the layout matches the expected xv6 user address space: program memory at the bottom, gaps in the middle, and kernel-related pages at the top.
+
+2. Besides getpid(), the USYSCALL shared page could also accelerate other system calls that simply return stable values, such as getuid(), getgid(), or getppid(). Even calls like times() could benefit if the kernel updates the shared page regularly. The key requirement is that the data must be safe to expose to user space and should not require complex kernel computation or frequent permission checks.
+
+3. Interpreting each PTE from the page table dump:
+
+   - 0x0000000000000000 → pte 0x…5B  
+     This is a user text/code page. It is valid, readable, executable, and accessible from user mode.
+
+   - 0x0000000000001000 → pte 0x…5B  
+     Another page belonging to the program’s text or data segment with the same permission bits.
+
+   - 0x0000000000002000 → pte 0x…D7  
+     This corresponds to user data or stack memory. It is writable and marked with the dirty bit, indicating it has been modified.
+
+   - 0x0000000000003000 → pte 0x…07  
+     A supervisor-only mapping. The lack of a user-accessible flag means the process cannot directly read or write this page.
+
+   - 0x0000000000004000 → pte 0x…D7  
+     Another writable user page, likely part of the stack or heap region.
+
+   - 0x0000003FFFFFD000 → pte 0x…13  
+     This is the USYSCALL page used for fast user system calls. It is mapped as user-readable but not writable.
+
+   - 0x0000003FFFFFE000 → pte 0x…C7  
+     The trapframe page used to store saved registers when the process traps into the kernel.
+
+   - 0x0000003FFFFFF000 → pte 0x…4B  
+     The trampoline page. It contains the assembly stubs for entering and leaving the kernel and is mapped as valid and executable but cannot be written by the process.
