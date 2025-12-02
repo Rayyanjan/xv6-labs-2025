@@ -9,6 +9,9 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+
+void boost_all(void);
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);

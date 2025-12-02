@@ -2,6 +2,8 @@
 
 struct stat;
 
+int boostproc(void);
+
 // system calls
 int fork(void);
 int exit(int) __attribute__((noreturn));
@@ -24,6 +26,7 @@ int getpid(void);
 char* sys_sbrk(int,int);
 int pause(int);
 int uptime(void);
+int getsyscallcount(void);
 
 // ulib.c
 int stat(const char*, struct stat*);
@@ -39,6 +42,7 @@ int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
 char* sbrk(int);
 char* sbrklazy(int);
+int getprocinfo(void);
 
 // printf.c
 void fprintf(int, const char*, ...) __attribute__ ((format (printf, 2, 3)));
